@@ -1,0 +1,86 @@
+{
+  "name": "step-forge",
+  "displayName": "step-forge-vs-code",
+  "description": "Step Forge IDE support",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Step Forge",
+      "properties": {
+        "stepForge.stepDefinitionsPath": {
+          "type": "string",
+          "default": "test/steps",
+          "description": "Path to step definitions directory"
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "gherkin",
+        "aliases": [
+          "Gherkin",
+          "feature"
+        ],
+        "extensions": [
+          ".feature"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "gherkin",
+        "scopeName": "text.gherkin.feature",
+        "path": "./syntaxes/feature.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "stepForge.refreshStepDefinitions",
+        "title": "Refresh Step Definitions"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.13",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.96.0",
+    "@typescript-eslint/eslint-plugin": "^8.17.0",
+    "@typescript-eslint/parser": "^8.17.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "eslint": "^9.16.0",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@cucumber/cucumber": "^11.1.1",
+    "@cucumber/gherkin": "^30.0.4",
+    "@cucumber/messages": "^27.0.2",
+    "lodash": "^4.17.21"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingComma": "all",
+    "semi": true
+  },
+  "activationEvents": [
+    "workspaceContains:**/*.feature",
+    "workspaceContains:**/features/**/*.ts"
+  ]
+}
