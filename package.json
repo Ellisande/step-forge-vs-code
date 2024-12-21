@@ -1,5 +1,5 @@
 {
-  "name": "step-forge",
+  "name": "@step-forge/step-forge-vscode",
   "displayName": "step-forge-vs-code",
   "description": "Step Forge IDE support",
   "version": "0.0.1",
