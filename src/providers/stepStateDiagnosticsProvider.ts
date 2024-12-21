@@ -1,12 +1,92 @@
 import * as vscode from 'vscode';
 import { StepDefinition, StepParser } from '../parsers/stepParser';
 
-export class StepStateDiagnosticsProvider {
+export class StepStateDiagnosticsProvider implements vscode.CodeActionProvider {
   private diagnosticCollection: vscode.DiagnosticCollection;
 
-  constructor(private stepParser: StepParser) {
+  constructor(
+    private stepParser: StepParser,
+    context: vscode.ExtensionContext,
+  ) {
     this.diagnosticCollection =
       vscode.languages.createDiagnosticCollection('cucumber-state');
+
+    // Register the code action provider
+    context.subscriptions.push(
+      vscode.languages.registerCodeActionsProvider(
+        { language: 'feature' },
+        this,
+        {
+          providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
+        },
+      ),
+    );
+  }
+
+  public provideCodeActions(
+    document: vscode.TextDocument,
+    range: vscode.Range | vscode.Selection,
+    context: vscode.CodeActionContext,
+  ): vscode.CodeAction[] {
+    const actions: vscode.CodeAction[] = [];
+
+    // Filter diagnostics to only those that overlap with the current range
+    const diagnostics = context.diagnostics.filter(
+      (diagnostic) => diagnostic.range.intersection(range) !== undefined,
+    );
+
+    for (const diagnostic of diagnostics) {
+      // Extract the missing dependencies from the diagnostic message
+      const missingDeps = this.extractMissingDependencies(diagnostic.message);
+
+      // Create quick fixes for each missing dependency
+      for (const [type, props] of Object.entries(missingDeps)) {
+        const matchingSteps = this.stepParser.findStepsSettingProperties(
+          type,
+          props,
+        );
+
+        for (const step of matchingSteps) {
+          const action = new vscode.CodeAction(
+            `Add step: ${step.pattern}`,
+            vscode.CodeActionKind.QuickFix,
+          );
+
+          action.edit = new vscode.WorkspaceEdit();
+          const insertPosition = new vscode.Position(
+            diagnostic.range.start.line,
+            0,
+          );
+          action.edit.insert(
+            document.uri,
+            insertPosition,
+            `    ${step.keyword} ${step.pattern}\n`,
+          );
+
+          action.diagnostics = [diagnostic];
+          actions.push(action);
+        }
+      }
+    }
+
+    return actions;
+  }
+
+  private extractMissingDependencies(
+    message: string,
+  ): Record<string, string[]> {
+    const result: Record<string, string[]> = {};
+    const lines = message.split('\n');
+
+    for (const line of lines) {
+      const match = line.match(/^([A-Z][a-z]+): (.+)$/);
+      if (match) {
+        const [_, type, propsStr] = match;
+        result[type.toLowerCase()] = propsStr.split(', ');
+      }
+    }
+
+    return result;
   }
 
   async provideDiagnostics(document: vscode.TextDocument) {

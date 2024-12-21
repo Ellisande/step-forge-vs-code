@@ -120,6 +120,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const diagnosticsProvider = new StepDefinitionDiagnosticsProvider(stepParser);
   const stepStateDiagnosticsProvider = new StepStateDiagnosticsProvider(
     stepParser,
+    context,
   );
 
   // Run diagnostics on all existing feature files
@@ -149,6 +150,17 @@ export async function activate(context: vscode.ExtensionContext) {
         await stepStateDiagnosticsProvider.provideDiagnostics(event.document);
       }
     }),
+  );
+
+  // Add this registration
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      'gherkin',
+      stepStateDiagnosticsProvider,
+      {
+        providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
+      },
+    ),
   );
 }
 

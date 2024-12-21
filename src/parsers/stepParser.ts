@@ -21,6 +21,11 @@ export interface StepDefinition {
   };
 }
 
+interface QuickFixStep {
+  pattern: string;
+  keyword: string;
+}
+
 export class StepParser {
   private stepDefinitions: StepDefinition[] = [];
   private program: ts.Program | undefined;
@@ -643,5 +648,36 @@ export class StepParser {
 
   getAllSteps(): StepDefinition[] {
     return this.stepDefinitions;
+  }
+
+  public findStepsSettingProperties(
+    type: string,
+    properties: string[],
+  ): QuickFixStep[] {
+    const results: QuickFixStep[] = [];
+
+    for (const step of this.stepDefinitions) {
+      // Check if this step's return type includes any of the required properties
+      const stepProps = Object.keys(step.returnType);
+      if (properties.some((prop) => stepProps.includes(prop))) {
+        results.push({
+          pattern: step.pattern,
+          keyword: this.getAppropriateKeyword(step.type),
+        });
+      }
+    }
+
+    return results;
+  }
+
+  private getAppropriateKeyword(type: 'given' | 'when' | 'then'): string {
+    switch (type) {
+      case 'given':
+        return 'Given';
+      case 'when':
+        return 'When';
+      case 'then':
+        return 'Then';
+    }
   }
 }

@@ -46,6 +46,18 @@
         "command": "stepForge.refreshStepDefinitions",
         "title": "Refresh Step Definitions"
       }
+    ],
+    "codeActions": [
+      {
+        "languages": [
+          "gherkin"
+        ],
+        "actions": {
+          "kind": "quickfix",
+          "title": "Generate Step Definition",
+          "command": "stepForge.generateStepDefinition"
+        }
+      }
     ]
   },
   "scripts": {
