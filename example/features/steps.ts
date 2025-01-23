@@ -1,4 +1,3 @@
-import { When } from '@cucumber/cucumber';
 import {
   GivenBuilder,
   ThenBuilder,

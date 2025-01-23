@@ -8,6 +8,13 @@ export type GivenState = {
   anArrayOfInts: number[];
   anArrayOfArraysOfStrings: string[][];
   anArrayOfArraysOfInts: number[][];
+  name: string;
+  user: {
+    name: string;
+  };
+  actualUser: {
+    name: string;
+  };
 };
 
 export type WhenState = {
@@ -17,6 +24,9 @@ export type WhenState = {
   anArrayOfInts: number[];
   anArrayOfArraysOfStrings: string[][];
   anArrayOfArraysOfInts: number[][];
+  actualUser: {
+    name: string;
+  };
 };
 
 export type ThenState = {
