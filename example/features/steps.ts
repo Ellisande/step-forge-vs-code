@@ -1,11 +1,11 @@
 import {
-  GivenBuilder,
-  ThenBuilder,
-  WhenBuilder,
-} from './step-forge-types/stepTypes';
+  givenBuilder,
+  thenBuilder,
+  whenBuilder,
+} from '@step-forge/step-forge';
 
 // Given steps
-GivenBuilder('I have a sample step')
+givenBuilder().statement('I have a sample step')
   .step(({ variables }) => {
     return {
       aString: "I'm a happy string",
@@ -13,7 +13,7 @@ GivenBuilder('I have a sample step')
   })
   .register();
 
-GivenBuilder('I want to see what it does')
+givenBuilder().statement('I want to see what it does')
   .dependencies({
     given: {
       aString: 'required',
@@ -27,14 +27,14 @@ GivenBuilder('I want to see what it does')
   .register();
 
 // When step
-WhenBuilder((times: string) => `I press a button ${times} times`)
+whenBuilder().statement((times: string) => `I press a button ${times} times`)
   .step(({ variables }) => {
     const [times] = variables;
     return {};
   })
   .register();
 
-WhenBuilder(
+whenBuilder().statement(
   (a: string, b: string, c: string, d: string) =>
     `I press a button ${a} ${b} and ${c} or ${d}`,
 )
@@ -49,7 +49,7 @@ WhenBuilder(
   .register();
 
 // Then steps
-ThenBuilder('I should see things')
+thenBuilder().statement('I should see things')
   .dependencies({
     given: {
       anArrayOfArraysOfInts: 'required',
@@ -66,7 +66,7 @@ ThenBuilder('I should see things')
   })
   .register();
 
-ThenBuilder('probably more stuff')
+thenBuilder().statement('probably more stuff')
   .step(({ variables }) => {
     return {};
   })
