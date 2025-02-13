@@ -135,7 +135,7 @@ export class StepParser {
       const { expression } = node;
 
       if (ts.isIdentifier(expression)) {
-        const builderTypes = ['GivenBuilder', 'WhenBuilder', 'ThenBuilder'];
+        const builderTypes = ['givenBuilder', 'whenBuilder', 'thenBuilder'];
         const symbol = typeChecker.getSymbolAtLocation(expression);
         this.outputChannel.appendLine(`[StepParser] Symbol: ${symbol}`);
         if (symbol && builderTypes.includes(symbol.getName())) {
@@ -189,6 +189,7 @@ export class StepParser {
     );
     let stepFunction: ts.Node | undefined;
 
+    // Find statement and step calls in the chain
     while (!chainComplete) {
       const parent = currentNode.parent;
       if (!parent) {
@@ -197,19 +198,19 @@ export class StepParser {
 
       if (ts.isCallExpression(parent)) {
         const parentExp = parent.expression;
-        if (
-          ts.isPropertyAccessExpression(parentExp) &&
-          parentExp.name.text === 'step'
-        ) {
-          stepFunction = parent.arguments[0];
-          pattern = this.extractPattern(node.arguments[0]);
-          chainComplete = true;
-        } else if (
-          ts.isPropertyAccessExpression(parentExp) &&
-          parentExp.name.text === 'register'
-        ) {
-          pattern = this.extractPattern(node.arguments[0]);
-          chainComplete = true;
+        if (ts.isPropertyAccessExpression(parentExp)) {
+          switch (parentExp.name.text) {
+            case 'statement':
+              // Extract pattern from the statement call
+              pattern = this.extractPattern(parent.arguments[0]);
+              break;
+            case 'step':
+              stepFunction = parent.arguments[0];
+              break;
+            case 'register':
+              chainComplete = true;
+              break;
+          }
         }
       }
 
@@ -283,27 +284,26 @@ export class StepParser {
       ts.isArrowFunction(patternNode) ||
       ts.isFunctionExpression(patternNode)
     ) {
+      // Get the parameter names for template substitution
+      const paramNames = patternNode.parameters.map(param => 
+        ts.isIdentifier(param.name) ? param.name.text : '{param}'
+      );
+      
       const body = patternNode.body;
+
+      // Handle template literals with parameter substitution
+      if (ts.isTemplateExpression(body)) {
+        let result = body.head.text;
+        body.templateSpans.forEach((span, index) => {
+          // Use the parameter name instead of the raw expression
+          result += `{${paramNames[index]}}${span.literal.text}`;
+        });
+        return result;
+      }
 
       // Handle direct string literals
       if (ts.isStringLiteral(body)) {
         return body.text;
-      }
-
-      // Handle template literals
-      if (
-        ts.isTemplateExpression(body) ||
-        ts.isNoSubstitutionTemplateLiteral(body)
-      ) {
-        return ts.isTemplateExpression(body)
-          ? body.head.text +
-              body.templateSpans
-                .map(
-                  (span) =>
-                    `{${span.expression.getText()}}` + span.literal.text,
-                )
-                .join('')
-          : body.text;
       }
 
       // Handle return statements in block bodies

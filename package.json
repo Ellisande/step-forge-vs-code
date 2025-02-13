@@ -84,7 +84,7 @@
     "@cucumber/cucumber": "^11.1.1",
     "@cucumber/gherkin": "^30.0.4",
     "@cucumber/messages": "^27.0.2",
-    "@step-forge/step-forge": "0.0.7-beta.5",
+    "@step-forge/step-forge": "0.0.7-beta.6",
     "lodash": "^4.17.21"
   },
   "prettier": {

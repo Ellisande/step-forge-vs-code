@@ -3,9 +3,10 @@ import {
   thenBuilder,
   whenBuilder,
 } from '@step-forge/step-forge';
+import { GivenState, WhenState, ThenState } from './world';
 
 // Given steps
-givenBuilder().statement('I have a sample step')
+givenBuilder<GivenState>().statement('I have a sample step')
   .step(({ variables }) => {
     return {
       aString: "I'm a happy string",
@@ -13,7 +14,7 @@ givenBuilder().statement('I have a sample step')
   })
   .register();
 
-givenBuilder().statement('I want to see what it does')
+givenBuilder<GivenState>().statement('I want to see what it does')
   .dependencies({
     given: {
       aString: 'required',
@@ -27,14 +28,14 @@ givenBuilder().statement('I want to see what it does')
   .register();
 
 // When step
-whenBuilder().statement((times: string) => `I press a button ${times} times`)
+whenBuilder<GivenState,WhenState>().statement((times: string) => `I press a button ${times} times`)
   .step(({ variables }) => {
     const [times] = variables;
     return {};
   })
   .register();
 
-whenBuilder().statement(
+whenBuilder<GivenState, WhenState>().statement(
   (a: string, b: string, c: string, d: string) =>
     `I press a button ${a} ${b} and ${c} or ${d}`,
 )
@@ -49,7 +50,7 @@ whenBuilder().statement(
   .register();
 
 // Then steps
-thenBuilder().statement('I should see things')
+thenBuilder<GivenState, WhenState, ThenState>().statement('I should see things')
   .dependencies({
     given: {
       anArrayOfArraysOfInts: 'required',
@@ -66,8 +67,12 @@ thenBuilder().statement('I should see things')
   })
   .register();
 
-thenBuilder().statement('probably more stuff')
+thenBuilder<GivenState, WhenState, ThenState>().statement('probably more stuff')
   .step(({ variables }) => {
     return {};
   })
   .register();
+
+thenBuilder<GivenState, WhenState, ThenState>().statement('random stuff').step(({ variables }) => {
+  return {};
+}).register();
