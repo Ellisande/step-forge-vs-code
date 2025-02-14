@@ -1,15 +1,21 @@
 {
-  "name": "@step-forge/step-forge-vscode",
+  "name": "step-forge-vscode",
   "displayName": "step-forge-vs-code",
   "description": "Step Forge IDE support",
   "version": "0.0.1-beta.1",
+  "publisher": "step-forge",
   "engines": {
-    "vscode": "^1.93.0"
+    "vscode": "^1.96.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ellisande/step-forge-vs-code"
   },
   "categories": [
     "Other"
   ],
   "main": "./out/extension.js",
+  "license": "MIT",
   "contributes": {
     "configuration": {
       "title": "Step Forge",
@@ -77,6 +83,7 @@
     "@typescript-eslint/parser": "^8.17.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.2.2",
     "eslint": "^9.16.0",
     "typescript": "^5.7.2"
   },
