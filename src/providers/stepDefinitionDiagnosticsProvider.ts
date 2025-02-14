@@ -3,17 +3,26 @@ import { StepParser } from '../parsers/stepParser';
 
 export class StepDefinitionDiagnosticsProvider {
   private diagnosticCollection: vscode.DiagnosticCollection;
+  private currentDiagnostics: Map<string, vscode.Diagnostic[]>;
 
   constructor(private stepParser: StepParser) {
     console.log('DiagnosticsProvider: Initializing...');
     this.diagnosticCollection =
       vscode.languages.createDiagnosticCollection('cucumber-steps');
+    this.currentDiagnostics = new Map();
   }
 
   public async provideDiagnostics(
     document: vscode.TextDocument,
+    isStepFile: boolean = false
   ): Promise<void> {
     console.log(`DiagnosticsProvider: Checking document ${document.uri}`);
+
+    // If this is a step file that changed, reparse only this file
+    if (isStepFile) {
+      await this.stepParser.parseStepFiles('**/*.ts', document.uri.fsPath);
+    }
+
     const diagnostics: vscode.Diagnostic[] = [];
 
     // Get all step lines in the document
@@ -73,7 +82,22 @@ export class StepDefinitionDiagnosticsProvider {
     }
 
     console.log(`Setting ${diagnostics.length} diagnostics for document`);
-    this.diagnosticCollection.set(document.uri, diagnostics);
+
+    // Store the new diagnostics for this file
+    this.currentDiagnostics.set(document.uri.toString(), diagnostics);
+
+    // Update the diagnostic collection with all current diagnostics
+    this.updateDiagnosticCollection();
+  }
+
+  private updateDiagnosticCollection() {
+    // Clear the existing collection
+    this.diagnosticCollection.clear();
+
+    // Add all current diagnostics back
+    for (const [uri, diagnostics] of this.currentDiagnostics.entries()) {
+      this.diagnosticCollection.set(vscode.Uri.parse(uri), diagnostics);
+    }
   }
 
   private determineStepType(
@@ -130,5 +154,6 @@ export class StepDefinitionDiagnosticsProvider {
     console.log('DiagnosticsProvider: Disposing...');
     this.diagnosticCollection.clear();
     this.diagnosticCollection.dispose();
+    this.currentDiagnostics.clear();
   }
 }

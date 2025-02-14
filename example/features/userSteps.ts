@@ -1,10 +1,11 @@
 import {
-  GivenBuilder,
-  ThenBuilder,
-  WhenBuilder,
-} from './step-forge-types/stepTypes';
+  givenBuilder,
+  thenBuilder,
+  whenBuilder,
+} from '@step-forge/step-forge';
+import { GivenState, WhenState, ThenState } from './world';
 
-GivenBuilder((name: string) => `I have a user named ${name}`)
+givenBuilder<GivenState>().statement((name: string) => `I have a user named ${name}`)
   .step(({ variables: [name] }) => {
     return {
       name,
@@ -12,7 +13,7 @@ GivenBuilder((name: string) => `I have a user named ${name}`)
   })
   .register();
 
-GivenBuilder('an existing user')
+givenBuilder<GivenState>().statement('an existing user')
   .dependencies({
     given: {
       name: 'required',
@@ -23,7 +24,7 @@ GivenBuilder('an existing user')
   })
   .register();
 
-WhenBuilder('I save the user')
+whenBuilder<GivenState, WhenState>().statement('I save the user')
   .dependencies({
     given: {
       user: 'required',
@@ -34,7 +35,7 @@ WhenBuilder('I save the user')
   })
   .register();
 
-ThenBuilder("the user's real name should not change")
+thenBuilder<GivenState, WhenState, ThenState>().statement("the user's real name should not change")
   .step(() => {
     // do nothing
     return {};

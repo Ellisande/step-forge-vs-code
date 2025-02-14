@@ -2,7 +2,7 @@
   "name": "@step-forge/step-forge-vscode",
   "displayName": "step-forge-vs-code",
   "description": "Step Forge IDE support",
-  "version": "0.0.1",
+  "version": "0.0.1-beta.1",
   "engines": {
     "vscode": "^1.93.0"
   },
@@ -84,6 +84,7 @@
     "@cucumber/cucumber": "^11.1.1",
     "@cucumber/gherkin": "^30.0.4",
     "@cucumber/messages": "^27.0.2",
+    "@step-forge/step-forge": "0.0.7-beta.6",
     "lodash": "^4.17.21"
   },
   "prettier": {
