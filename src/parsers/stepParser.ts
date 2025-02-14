@@ -37,19 +37,33 @@ export class StepParser {
 
   async parseStepFiles(
     stepFilesGlob: vscode.GlobPattern | string,
+    modifiedFile?: string
   ): Promise<StepDefinition[]> {
     this.outputChannel.appendLine(
       `[StepParser] Searching for step files matching: ${stepFilesGlob}`,
     );
 
-    // Handle both glob patterns and individual files
-    const files =
-      typeof stepFilesGlob === 'string' && !stepFilesGlob.includes('*')
-        ? [vscode.Uri.file(stepFilesGlob)]
-        : await vscode.workspace.findFiles(stepFilesGlob);
+    if (modifiedFile) {
+      this.outputChannel.appendLine(
+        `[StepParser] Removing steps from modified file: ${modifiedFile}`,
+      );
+      this.stepDefinitions = this.stepDefinitions.filter(
+        step => step.sourceFile !== modifiedFile
+      );
+    } else {
+      this.stepDefinitions = [];
+    }
+
+    const files = typeof stepFilesGlob === 'string' && !stepFilesGlob.includes('*')
+      ? [vscode.Uri.file(stepFilesGlob)]
+      : await vscode.workspace.findFiles(stepFilesGlob);
+
+    const filesToParse = modifiedFile 
+      ? files.filter(f => f.fsPath === modifiedFile)
+      : files;
 
     this.outputChannel.appendLine(
-      `[StepParser] Found ${files.length} step files`,
+      `[StepParser] Found ${filesToParse.length} step files to parse`,
     );
 
     const workspaceRoot =
@@ -78,13 +92,11 @@ export class StepParser {
     );
 
     this.program = ts.createProgram(
-      files.map((f) => f.fsPath),
+      filesToParse.map((f) => f.fsPath),
       options,
     );
 
-    this.stepDefinitions = [];
-
-    for (const file of files) {
+    for (const file of filesToParse) {
       this.outputChannel.appendLine(
         `[StepParser] Parsing file: ${file.fsPath}`,
       );

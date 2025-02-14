@@ -47,7 +47,7 @@ export async function activate(context: vscode.ExtensionContext) {
   watcher.onDidChange(async (uri) => {
     console.log(`TypeScript file changed: ${uri.fsPath}`);
     try {
-      await stepParser.parseStepFiles(uri.fsPath);
+      await stepParser.parseStepFiles('**/features/**/*.ts', uri.fsPath);
       console.log(`Successfully parsed changed file: ${uri.fsPath}`);
 
       // Re-run diagnostics on all feature files after step file changes
