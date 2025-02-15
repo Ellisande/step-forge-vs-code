@@ -1,5 +1,8 @@
 # Step Forge VS Code
 
+> **Warning**
+> This extension is still in early development and is not ready for production use.
+
 This extension provides IDE support for [Step Forge](https://www.npmjs.com/package/@step-forge/step-forge). It providers Gherkin language support, step definition linting, and more.
 
 ## Features
