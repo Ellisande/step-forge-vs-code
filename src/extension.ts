@@ -1,168 +1,123 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-
+import type { StepDefinitionMeta } from '@step-forge/step-forge';
+import { analyzer } from '@step-forge/step-forge';
 import { DefinitionProvider } from './providers/definitionProvider';
-import { StepParser } from './parsers/stepParser';
-import { GherkinParser } from './parsers/gherkinParser';
 import { CompletionProvider } from './providers/completionProvider';
-import { StepStateDiagnosticsProvider } from './providers/stepStateDiagnosticsProvider';
-import { StepDefinitionDiagnosticsProvider } from './providers/stepDefinitionDiagnosticsProvider';
+import { DiagnosticsProvider } from './providers/diagnosticsProvider';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+let stepDefinitions: StepDefinitionMeta[] = [];
+
 export async function activate(context: vscode.ExtensionContext) {
-  console.log('🚀 Extension is activating...');
-
-  // Add activation logging
   const workspaceFolders = vscode.workspace.workspaceFolders;
-  console.log('Current workspace:', workspaceFolders);
   if (!workspaceFolders) {
-    console.log('No workspace folders found');
     return;
   }
 
-  // Initialize parsers
-  const stepParser = new StepParser();
-  const gherkinParser = new GherkinParser();
+  // Initialize providers
+  const completionProvider = new CompletionProvider();
+  const definitionProvider = new DefinitionProvider();
+  const diagnosticsProvider = new DiagnosticsProvider();
 
-  // Initial parsing of existing files with error handling
-  console.log('Starting initial file parsing...');
-  try {
-    await stepParser.parseStepFiles('**/features/**/*.ts');
-    console.log('Successfully parsed all TypeScript files');
-  } catch (error) {
-    console.error('Error parsing files:', error);
-  }
+  // Parse step definitions
+  await parseAllStepFiles();
+  updateProviders();
 
-  // Watch for TypeScript file changes
-  const watcher = vscode.workspace.createFileSystemWatcher(
+  // Watch for TypeScript file changes in features directories
+  const tsWatcher = vscode.workspace.createFileSystemWatcher(
     '**/features/**/*.ts',
-    false, // Don't ignore creates
-    false, // Don't ignore changes
-    false, // Don't ignore deletes
+    false,
+    false,
+    false,
   );
 
-  // Enhanced file watcher event handlers with logging
-  watcher.onDidChange(async (uri) => {
-    console.log(`TypeScript file changed: ${uri.fsPath}`);
-    try {
-      await stepParser.parseStepFiles('**/features/**/*.ts', uri.fsPath);
-      console.log(`Successfully parsed changed file: ${uri.fsPath}`);
-
-      // Re-run diagnostics on all feature files after step file changes
-      const featureFiles = await vscode.workspace.findFiles('**/*.feature');
-      for (const file of featureFiles) {
-        const document = await vscode.workspace.openTextDocument(file);
-        await diagnosticsProvider.provideDiagnostics(document);
-        await stepStateDiagnosticsProvider.provideDiagnostics(document);
-      }
-    } catch (error) {
-      console.error(`Error parsing file ${uri.fsPath}:`, error);
-    }
+  tsWatcher.onDidChange(async () => {
+    await parseAllStepFiles();
+    updateProviders();
+    await runDiagnosticsOnAllFeatureFiles();
   });
 
-  watcher.onDidCreate(async (uri) => {
-    console.log(`New TypeScript file created: ${uri.fsPath}`);
-    try {
-      await stepParser.parseStepFiles(uri.fsPath);
-      console.log(`Successfully parsed new file: ${uri.fsPath}`);
-
-      // Re-run diagnostics on all feature files after step file changes
-      const featureFiles = await vscode.workspace.findFiles('**/*.feature');
-      for (const file of featureFiles) {
-        const document = await vscode.workspace.openTextDocument(file);
-        await diagnosticsProvider.provideDiagnostics(document);
-        await stepStateDiagnosticsProvider.provideDiagnostics(document);
-      }
-    } catch (error) {
-      console.error(`Error parsing file ${uri.fsPath}:`, error);
-    }
+  tsWatcher.onDidCreate(async () => {
+    await parseAllStepFiles();
+    updateProviders();
+    await runDiagnosticsOnAllFeatureFiles();
   });
 
-  // Add watcher to disposables
-  context.subscriptions.push(watcher);
+  tsWatcher.onDidDelete(async () => {
+    await parseAllStepFiles();
+    updateProviders();
+    await runDiagnosticsOnAllFeatureFiles();
+  });
 
   // Register providers
-  const completionDisposable = vscode.languages.registerCompletionItemProvider(
-    'gherkin',
-    new CompletionProvider(stepParser),
-    'Given',
-    'When',
-    'Then',
-  );
-  console.log('✅ CompletionItemProvider registered');
-
-  // Register definition provider
-  const definitionDisposable = vscode.languages.registerDefinitionProvider(
-    'gherkin',
-    new DefinitionProvider(stepParser),
-  );
-  console.log('✅ DefinitionProvider registered');
-
-  // Add both disposables to subscriptions
-  context.subscriptions.push(completionDisposable, definitionDisposable);
-
-  // Initialize diagnostics
-  const diagnosticCollection =
-    vscode.languages.createDiagnosticCollection('stepForge');
-  context.subscriptions.push(diagnosticCollection);
-
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "step-forge" is now active!');
-
-  const outputChannel = vscode.window.createOutputChannel(
-    'My Gherkin Extension',
-  );
-  outputChannel.appendLine('Extension activated');
-
-  const diagnosticsProvider = new StepDefinitionDiagnosticsProvider(stepParser);
-  const stepStateDiagnosticsProvider = new StepStateDiagnosticsProvider(
-    stepParser,
-    context,
-  );
-
-  // Run diagnostics on all existing feature files
-  const featureFiles = await vscode.workspace.findFiles('**/*.feature');
-  console.log(
-    `Found ${featureFiles.length} feature files for initial diagnostics`,
-  );
-  for (const file of featureFiles) {
-    const document = await vscode.workspace.openTextDocument(file);
-    await diagnosticsProvider.provideDiagnostics(document);
-    await stepStateDiagnosticsProvider.provideDiagnostics(document);
-  }
-
-  // Register for feature files
   context.subscriptions.push(
-    diagnosticsProvider, // Add the provider itself to disposables
-    stepStateDiagnosticsProvider, // Add the new provider to disposables
-    vscode.workspace.onDidOpenTextDocument(async (doc) => {
-      if (doc.languageId === 'gherkin') {
-        await diagnosticsProvider.provideDiagnostics(doc);
-        await stepStateDiagnosticsProvider.provideDiagnostics(doc);
-      }
-    }),
-    vscode.workspace.onDidChangeTextDocument(async (event) => {
-      if (event.document.languageId === 'gherkin') {
-        await diagnosticsProvider.provideDiagnostics(event.document);
-        await stepStateDiagnosticsProvider.provideDiagnostics(event.document);
-      }
-    }),
-  );
-
-  // Add this registration
-  context.subscriptions.push(
+    tsWatcher,
+    vscode.languages.registerCompletionItemProvider(
+      'gherkin',
+      completionProvider,
+      'Given',
+      'When',
+      'Then',
+    ),
+    vscode.languages.registerDefinitionProvider('gherkin', definitionProvider),
     vscode.languages.registerCodeActionsProvider(
       'gherkin',
-      stepStateDiagnosticsProvider,
+      diagnosticsProvider,
       {
         providedCodeActionKinds: [vscode.CodeActionKind.QuickFix],
       },
     ),
+    diagnosticsProvider,
+    vscode.workspace.onDidOpenTextDocument((doc) => {
+      if (doc.languageId === 'gherkin') {
+        diagnosticsProvider.provideDiagnostics(doc);
+      }
+    }),
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      if (event.document.languageId === 'gherkin') {
+        diagnosticsProvider.provideDiagnostics(event.document);
+      }
+    }),
   );
+
+  // Run initial diagnostics on all feature files
+  await runDiagnosticsOnAllFeatureFiles();
+
+  function updateProviders() {
+    completionProvider.setDefinitions(stepDefinitions);
+    definitionProvider.setDefinitions(stepDefinitions);
+    diagnosticsProvider.setDefinitions(stepDefinitions);
+  }
+
+  async function runDiagnosticsOnAllFeatureFiles() {
+    const featureFiles = await vscode.workspace.findFiles('**/*.feature');
+    for (const file of featureFiles) {
+      const document = await vscode.workspace.openTextDocument(file);
+      diagnosticsProvider.provideDiagnostics(document);
+    }
+  }
 }
 
-// This method is called when your extension is deactivated
+async function parseAllStepFiles() {
+  const tsFiles = await vscode.workspace.findFiles('**/features/**/*.ts');
+  const filePaths = tsFiles.map((f) => f.fsPath);
+
+  console.log('[step-forge] Found TS files:', filePaths);
+
+  if (filePaths.length === 0) {
+    stepDefinitions = [];
+    return;
+  }
+
+  try {
+    stepDefinitions = analyzer.extractStepDefinitions(filePaths);
+    console.log(
+      '[step-forge] Extracted definitions:',
+      stepDefinitions.map((d) => `${d.sourceFile}:${d.line} ${d.expression}`),
+    );
+  } catch (error) {
+    console.error('[step-forge] Error parsing step definitions:', error);
+    stepDefinitions = [];
+  }
+}
+
 export function deactivate() {}

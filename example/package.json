@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@step-forge/step-forge": "^0.0.7-beta.6"
+    "@step-forge/step-forge": "^0.0.8"
+  },
+  "devDependencies": {
+    "earl": "^1.3.0"
   }
 }

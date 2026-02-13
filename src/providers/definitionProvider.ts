@@ -1,49 +1,52 @@
 import * as vscode from 'vscode';
-import { StepParser } from '../parsers/stepParser';
+import type { StepDefinitionMeta } from '@step-forge/step-forge';
+import { analyzer } from '@step-forge/step-forge';
 
 export class DefinitionProvider implements vscode.DefinitionProvider {
-  constructor(private stepParser: StepParser) {}
+  private definitions: StepDefinitionMeta[] = [];
+
+  setDefinitions(definitions: StepDefinitionMeta[]) {
+    this.definitions = definitions;
+  }
 
   provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position,
   ): vscode.Definition | undefined {
-    const line = document.lineAt(position.line);
-    const lineText = line.text;
+    const lineText = document.lineAt(position.line).text;
 
-    // Check if line starts with Given/When/Then/And/But
     const match = lineText.match(/^\s*(Given|When|Then|And|But)\s+(.+)$/);
     if (!match) {
       return undefined;
     }
 
-    // Determine step type
-    let stepType = this.determineStepType(document, position);
-    if (!stepType) {
+    const effectiveKeyword = this.resolveEffectiveKeyword(document, position);
+    if (!effectiveKeyword) {
       return undefined;
     }
 
-    // Get the step text
     const stepText = match[2];
+    const matchingDefs = analyzer.findMatchingDefinitions(
+      stepText,
+      effectiveKeyword,
+      this.definitions,
+    );
 
-    // Find matching steps
-    const matchingSteps = this.stepParser.getMatchingSteps(stepText, stepType);
-    if (matchingSteps.length === 0) {
+    if (matchingDefs.length === 0) {
       return undefined;
     }
 
-    // Return the location of the first matching step
-    const step = matchingSteps[0];
+    const def = matchingDefs[0];
     return new vscode.Location(
-      vscode.Uri.file(step.sourceFile),
-      new vscode.Position(step.line - 1, step.column - 1),
+      vscode.Uri.file(def.sourceFile),
+      new vscode.Position(def.line - 1, 0),
     );
   }
 
-  private determineStepType(
+  private resolveEffectiveKeyword(
     document: vscode.TextDocument,
     position: vscode.Position,
-  ): 'given' | 'when' | 'then' | undefined {
+  ): 'Given' | 'When' | 'Then' | undefined {
     const currentLine = document.lineAt(position).text;
     const match = currentLine.match(/^\s*(Given|When|Then|And|But)/);
 
@@ -51,33 +54,15 @@ export class DefinitionProvider implements vscode.DefinitionProvider {
       return undefined;
     }
 
-    if (match[1] === 'Given') {
-      return 'given';
-    }
-    if (match[1] === 'When') {
-      return 'when';
-    }
-    if (match[1] === 'Then') {
-      return 'then';
+    if (match[1] === 'Given' || match[1] === 'When' || match[1] === 'Then') {
+      return match[1] as 'Given' | 'When' | 'Then';
     }
 
-    // For And/But, look up previous non-And/But step
-    if (match[1] === 'And' || match[1] === 'But') {
-      for (let lineNo = position.line - 1; lineNo >= 0; lineNo--) {
-        const prevLine = document.lineAt(lineNo).text;
-        const prevMatch = prevLine.match(/^\s*(Given|When|Then|And|But)/);
-
-        if (prevMatch) {
-          switch (prevMatch[1]) {
-            case 'Given':
-              return 'given';
-            case 'When':
-              return 'when';
-            case 'Then':
-              return 'then';
-            // Continue looking up if it's another And/But
-          }
-        }
+    for (let lineNo = position.line - 1; lineNo >= 0; lineNo--) {
+      const prevLine = document.lineAt(lineNo).text;
+      const prevMatch = prevLine.match(/^\s*(Given|When|Then)/);
+      if (prevMatch) {
+        return prevMatch[1] as 'Given' | 'When' | 'Then';
       }
     }
 

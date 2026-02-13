@@ -72,9 +72,3 @@ thenBuilder<GivenState, WhenState, ThenState>().statement('probably more stuff')
     return {};
   })
   .register();
-
-thenBuilder<GivenState, WhenState, ThenState>().statement('random stuff')
-  .step(({ variables }) => {
-    return {};
-  })
-  .register();
