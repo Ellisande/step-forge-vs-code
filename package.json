@@ -87,7 +87,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "@step-forge/step-forge": "file:../step-forge/build"
+    "@step-forge/step-forge": "^0.0.8"
   },
   "prettier": {
     "singleQuote": true,
