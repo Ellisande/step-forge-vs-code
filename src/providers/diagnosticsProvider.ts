@@ -112,7 +112,12 @@ export class DiagnosticsProvider implements vscode.CodeActionProvider {
     for (const line of lines) {
       const match = line.match(/^([A-Z][a-z]+): (.+)$/);
       if (match) {
-        result[match[1].toLowerCase()] = match[2].split(', ');
+        const phase = match[1].toLowerCase();
+        // Values are formatted as "phase.key" — strip the phase prefix
+        result[phase] = match[2].split(', ').map((v) => {
+          const dotIndex = v.indexOf('.');
+          return dotIndex >= 0 ? v.substring(dotIndex + 1) : v;
+        });
       }
     }
 
